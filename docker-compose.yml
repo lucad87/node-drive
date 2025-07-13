@@ -1,0 +1,16 @@
+services:
+  node-drive:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./data:/app/data
+    env_file:
+      - ./.env
+    environment:
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      SESSION_SECRET: ${SESSION_SECRET:-your_default_session_secret_here}
+      CALLBACK_URL: ${CALLBACK_URL}

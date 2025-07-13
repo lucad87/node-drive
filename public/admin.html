@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Node Drive</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <header class="d-flex justify-content-between align-items-center pb-3 mb-4 border-bottom">
+            <h1 class="h4 mb-0">Admin Panel</h1>
+            <a href="/" class="btn btn-outline-secondary"><i class="bi bi-house"></i> Back to Drive</a>
+        </header>
+
+        <div class="card">
+            <div class="card-header">
+                User Management
+            </div>
+            <ul class="list-group list-group-flush" id="user-list"></ul>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function loadUsers() {
+            fetch('/api/admin/users')
+                .then(response => response.json())
+                .then(users => {
+                    const userList = document.getElementById('user-list');
+                    userList.innerHTML = '';
+                    users.forEach(user => {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                        li.innerHTML = `
+                            <div>
+                                <strong>${user.displayName}</strong> (${user.email})
+                            </div>
+                            <div>
+                                <div class="form-check form-switch d-inline-block me-3">
+                                    <input class="form-check-input" type="checkbox" id="adminSwitch-${user.id}" ${user.isAdmin ? 'checked' : ''} onchange="toggleAdmin('${user.id}', this.checked)">
+                                    <label class="form-check-label" for="adminSwitch-${user.id}">Admin</label>
+                                </div>
+                                <div class="form-check form-switch d-inline-block">
+                                    <input class="form-check-input" type="checkbox" id="accessSwitch-${user.id}" ${user.canAccess ? 'checked' : ''} onchange="toggleAccess('${user.id}', this.checked)">
+                                    <label class="form-check-label" for="accessSwitch-${user.id}">Access</label>
+                                </div>
+                            </div>
+                        `;
+                        userList.appendChild(li);
+                    });
+                });
+        }
+
+        function toggleAdmin(userId, isAdmin) {
+            fetch('/api/admin/users/' + userId, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isAdmin: isAdmin })
+            }).then(response => {
+                if (!response.ok) {
+                    alert('Error updating admin status.');
+                    loadUsers(); // Reload to revert changes if error
+                }
+            });
+        }
+
+        function toggleAccess(userId, canAccess) {
+            fetch('/api/admin/users/' + userId, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ canAccess: canAccess })
+            }).then(response => {
+                if (!response.ok) {
+                    alert('Error updating access status.');
+                    loadUsers(); // Reload to revert changes if error
+                }
+            });
+        }
+
+        loadUsers();
+    </script>
+</body>
+</html>

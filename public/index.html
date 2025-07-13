@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Node Drive</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .file-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px; /* Adjust as needed */
+        }
+
+        @media (max-width: 768px) {
+            .file-name {
+                max-width: 150px; /* Shorter max-width for smaller screens */
+            }
+        }
+
+        .file-item:hover {
+            background-color: #e9ecef;
+            cursor: pointer;
+        }
+        .file-icon {
+            font-size: 1.5rem;
+            margin-right: 10px;
+        }
+        .delete-btn {
+            color: red;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <header class="d-flex justify-content-between align-items-center pb-3 mb-4 border-bottom">
+            <h1 class="h4 mb-0">Node Drive</h1>
+            <div class="d-flex align-items-center">
+                <div class="btn-group me-2">
+                    <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-plus-lg"></i> New
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#newFolderModal"><i class="bi bi-folder-plus"></i> New Folder</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" onclick="document.getElementById('file-input').click()"><i class="bi bi-upload"></i> Upload File</a></li>
+                    </ul>
+                    <input type="file" id="file-input" style="display: none;" onchange="uploadFile()" multiple>
+                </div>
+                <button type="button" class="btn btn-secondary me-2" id="select-all-btn" onclick="toggleSelectAll()"><i class="bi bi-check-square"></i> Select All</button>
+                <button type="button" class="btn btn-info me-2" id="move-selected-btn" style="display: none;" onclick="openMoveModal(Array.from(selectedItems))">
+                    <i class="bi bi-arrows-move"></i> Move Selected
+                </button>
+                <a href="/auth/logout" class="btn btn-outline-secondary"><i class="bi bi-box-arrow-right"></i> Logout</a>
+                <a href="/admin.html" class="btn btn-outline-info ms-2" id="admin-link" style="display: none;"><i class="bi bi-gear"></i> Admin</a>
+            </div>
+        </header>
+
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb" id="breadcrumb"></ol>
+        </nav>
+
+        <div id="file-browser" class="list-group"></div>
+
+        <!-- New Folder Modal -->
+        <div class="modal fade" id="newFolderModal" tabindex="-1" aria-labelledby="newFolderModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="newFolderModalLabel">Create New Folder</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="text" id="folder-name-input" class="form-control" placeholder="Folder name">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="createFolder()">Create</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Share Modal -->
+        <div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="shareModalLabel">Share Link</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control" id="share-link-input" readonly>
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyShareLink()">Copy</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Move Modal -->
+        <div class="modal fade" id="moveModal" tabindex="-1" aria-labelledby="moveModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="moveModalLabel">Move Item</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Moving: <strong id="item-to-move-name"></strong></p>
+                        <div class="mb-3">
+                            <label for="destination-path-input" class="form-label">Destination Path (relative to root, e.g., 'new_folder' or 'folder1/subfolder'):</label>
+                            <input type="text" class="form-control" id="destination-path-input" placeholder="Enter destination path">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="confirm-move-btn">Move</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Modal -->
+        <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="previewModalLabel">File Preview</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <img id="previewImage" src="" class="img-fluid" style="display: none; max-height: 70vh;">
+                        <video id="previewVideo" controls class="img-fluid" style="display: none; max-height: 70vh;"></video>
+                        <p id="previewUnsupported" style="display: none;">No preview available for this file type.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentPath = '';
+        let itemToMove = ''; // To store the name of the item being moved
+        let selectedItems = new Set(); // To store selected items for multi-move
+
+        function updateBreadcrumb() {
+            const breadcrumb = document.getElementById('breadcrumb');
+            breadcrumb.innerHTML = '';
+            const parts = currentPath.split('/').filter(Boolean);
+            
+            const homeLi = document.createElement('li');
+            homeLi.className = 'breadcrumb-item';
+            const homeLink = document.createElement('a');
+            homeLink.href = '#';
+            homeLink.textContent = 'Home';
+            homeLink.onclick = (e) => {
+                e.preventDefault();
+                loadFiles('');
+            };
+            homeLi.appendChild(homeLink);
+            breadcrumb.appendChild(homeLi);
+
+            let path = '';
+            parts.forEach((part, index) => {
+                path += (path ? '/' : '') + part;
+                const li = document.createElement('li');
+                li.className = 'breadcrumb-item';
+                if (index === parts.length - 1) {
+                    li.classList.add('active');
+                    li.setAttribute('aria-current', 'page');
+                    li.textContent = part;
+                } else {
+                    const link = document.createElement('a');
+                    link.href = '#';
+                    link.textContent = part;
+                    const currentLinkPath = path;
+                    link.onclick = (e) => {
+                        e.preventDefault();
+                        loadFiles(currentLinkPath);
+                    };
+                    li.appendChild(link);
+                }
+                breadcrumb.appendChild(li);
+            });
+        }
+
+        function loadFiles(path) {
+            currentPath = path;
+            selectedItems.clear(); // Clear selection on new folder load
+            updateMoveSelectedButtonVisibility(); // Update button visibility
+            fetch(`/api/files?path=${encodeURIComponent(path)}`)
+                .then(response => response.json())
+                .then(files => {
+                    const fileBrowser = document.getElementById('file-browser');
+                    fileBrowser.innerHTML = '';
+                    updateBreadcrumb();
+
+                    files.sort((a, b) => {
+                        if (a.isDirectory !== b.isDirectory) {
+                            return a.isDirectory ? -1 : 1;
+                        }
+                        return a.name.localeCompare(b.name);
+                    });
+
+                    files.forEach(file => {
+                        const item = document.createElement('a');
+                        item.href = '#';
+                        item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+                        
+                        const selectionDiv = document.createElement('div');
+                        selectionDiv.className = 'form-check me-3';
+                        const checkbox = document.createElement('input');
+                        checkbox.className = 'form-check-input';
+                        checkbox.type = 'checkbox';
+                        checkbox.value = file.name;
+                        checkbox.id = `checkbox-${file.name}`;
+                        checkbox.checked = selectedItems.has(file.name);
+                        checkbox.onclick = (e) => {
+                            e.stopPropagation();
+                            toggleSelection(file.name);
+                        };
+                        selectionDiv.appendChild(checkbox);
+                        item.appendChild(selectionDiv);
+
+                        const mainContent = document.createElement('div');
+                        mainContent.className = 'd-flex align-items-center flex-grow-1';
+
+                        const icon = document.createElement('i');
+                        if (file.isDirectory) {
+                            icon.className = 'bi bi-folder-fill file-icon text-primary';
+                        } else {
+                            const fileExtension = file.name.split('.').pop().toLowerCase();
+                            if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(fileExtension)) {
+                                icon.className = 'bi bi-image-fill file-icon text-info';
+                            } else if (['mp4', 'webm', 'ogg'].includes(fileExtension)) {
+                                icon.className = 'bi bi-film file-icon text-danger';
+                            } else {
+                                icon.className = 'bi bi-file-earmark-fill file-icon text-secondary';
+                            }
+                        }
+                        
+                        mainContent.appendChild(icon);
+                        const fileNameSpan = document.createElement('span');
+                        fileNameSpan.className = 'file-name';
+                        fileNameSpan.textContent = file.name;
+                        mainContent.appendChild(fileNameSpan);
+                        
+                        item.appendChild(mainContent);
+
+                        if (file.isDirectory) {
+                            item.onclick = (e) => {
+                                e.preventDefault();
+                                loadFiles(currentPath ? `${currentPath}/${file.name}` : file.name);
+                            };
+                            const badge = document.createElement('span');
+                            badge.className = 'badge bg-secondary rounded-pill ms-2';
+                            badge.textContent = file.fileCount;
+                            mainContent.appendChild(badge);
+                        } else {
+                             item.onclick = (e) => {
+                                e.preventDefault();
+                                const fileUrl = `/uploads/${encodeURIComponent(currentPath)}/${encodeURIComponent(file.name)}`;
+                                const fileExtension = file.name.split('.').pop().toLowerCase();
+                                const previewImage = document.getElementById('previewImage');
+                                const previewVideo = document.getElementById('previewVideo');
+                                const previewUnsupported = document.getElementById('previewUnsupported');
+
+                                previewImage.style.display = 'none';
+                                previewVideo.style.display = 'none';
+                                previewUnsupported.style.display = 'none';
+
+                                if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(fileExtension)) {
+                                    previewImage.src = fileUrl;
+                                    previewImage.style.display = 'block';
+                                } else if (['mp4', 'webm', 'ogg'].includes(fileExtension)) {
+                                    previewVideo.src = fileUrl;
+                                    previewVideo.style.display = 'block';
+                                } else {
+                                    previewUnsupported.style.display = 'block';
+                                }
+                                const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+                                previewModal.show();
+                            };
+                        }
+
+                        const actionsDiv = document.createElement('div');
+                        actionsDiv.className = 'd-flex align-items-center';
+
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'btn btn-sm btn-outline-danger';
+                        deleteBtn.innerHTML = '<i class="bi bi-trash-fill"></i>';
+                        deleteBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            deleteItem(file.name);
+                        };
+                        actionsDiv.appendChild(deleteBtn);
+
+                        const shareBtn = document.createElement('button');
+                        shareBtn.className = 'btn btn-sm btn-outline-info ms-2';
+                        shareBtn.innerHTML = '<i class="bi bi-share-fill"></i>';
+                        shareBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            shareItem(file.name);
+                        };
+                        actionsDiv.appendChild(shareBtn);
+
+                        const moveBtn = document.createElement('button');
+                        moveBtn.className = 'btn btn-sm btn-outline-secondary ms-2';
+                        moveBtn.innerHTML = '<i class="bi bi-arrows-move"></i>';
+                        moveBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            openMoveModal(file.name);
+                        };
+                        actionsDiv.appendChild(moveBtn);
+
+                        item.appendChild(actionsDiv);
+
+                        fileBrowser.appendChild(item);
+                    });
+                });
+        }
+
+        function shareItem(name) {
+            fetch('/api/share', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, path: currentPath }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                const shareLinkInput = document.getElementById('share-link-input');
+                shareLinkInput.value = `${window.location.origin}${data.shareLink}`;
+                const shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
+                shareModal.show();
+            })
+            .catch(error => {
+                console.error('Error sharing item:', error);
+                alert('Error sharing item. Check console for details.');
+            });
+        }
+
+        function createFolder() {
+            const folderName = document.getElementById('folder-name-input').value;
+            if (!folderName) return;
+
+            const modal = bootstrap.Modal.getInstance(document.getElementById('newFolderModal'));
+
+            fetch('/api/folders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: folderName, path: currentPath }),
+            }).then(() => {
+                document.getElementById('folder-name-input').value = '';
+                modal.hide();
+                loadFiles(currentPath);
+            });
+        }
+
+        function uploadFile() {
+            const fileInput = document.getElementById('file-input');
+            const files = fileInput.files;
+            if (files.length === 0) return;
+
+            const formData = new FormData();
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]); // Changed 'file' to 'files'
+            }
+
+            fetch(`/api/files?path=${encodeURIComponent(currentPath)}`, {
+                method: 'POST',
+                body: formData,
+            }).then(() => {
+                fileInput.value = '';
+                loadFiles(currentPath);
+            });
+        }
+
+        function deleteItem(name) {
+            if (!confirm(`Are you sure you want to delete ${name}?`)) return;
+            fetch('/api/files', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, path: currentPath }),
+            }).then(() => {
+                loadFiles(currentPath);
+            });
+        }
+
+        function copyShareLink() {
+            const shareLinkInput = document.getElementById('share-link-input');
+            shareLinkInput.select();
+            shareLinkInput.setSelectionRange(0, 99999); // For mobile devices
+            navigator.clipboard.writeText(shareLinkInput.value);
+            alert('Link copied to clipboard!');
+        }
+
+        function toggleSelectAll() {
+            const checkboxes = document.querySelectorAll('#file-browser input[type="checkbox"]');
+            const allSelected = selectedItems.size === checkboxes.length && checkboxes.length > 0;
+
+            selectedItems.clear();
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = !allSelected;
+                if (!allSelected) {
+                    selectedItems.add(checkbox.value);
+                }
+            });
+            updateMoveSelectedButtonVisibility();
+        }
+
+        function toggleSelection(name) {
+            if (selectedItems.has(name)) {
+                selectedItems.delete(name);
+            } else {
+                selectedItems.add(name);
+            }
+            updateMoveSelectedButtonVisibility();
+        }
+
+        function updateMoveSelectedButtonVisibility() {
+            const moveSelectedBtn = document.getElementById('move-selected-btn');
+            if (selectedItems.size > 0) {
+                moveSelectedBtn.style.display = 'block';
+            } else {
+                moveSelectedBtn.style.display = 'none';
+            }
+        }
+
+        function openMoveModal(names) {
+            // 'names' can be a single string or an array of strings
+            itemToMove = Array.isArray(names) ? names : [names];
+            document.getElementById('item-to-move-name').textContent = itemToMove.join(', ');
+            document.getElementById('destination-path-input').value = currentPath; // Pre-fill with current path
+            const moveModal = new bootstrap.Modal(document.getElementById('moveModal'));
+            moveModal.show();
+        }
+
+        document.getElementById('confirm-move-btn').onclick = () => {
+            const destinationPath = document.getElementById('destination-path-input').value;
+            moveItem(itemToMove, destinationPath);
+        };
+
+        function moveItem(names, destination) {
+            fetch('/api/move', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ names, currentPath, destination }),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => { throw new Error(text) });
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert(data.message);
+                const moveModal = bootstrap.Modal.getInstance(document.getElementById('moveModal'));
+                moveModal.hide();
+                selectedItems.clear(); // Clear selection after move
+                updateMoveSelectedButtonVisibility(); // Update button visibility
+                loadFiles(currentPath);
+            })
+            .catch(error => {
+                console.error('Error moving item:', error);
+                alert(`Error moving item: ${error.message}`);
+            });
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const initialPath = urlParams.get('path') || '';
+        loadFiles(initialPath);
+
+        // Check if user is admin and show admin link
+        fetch('/api/user-info')
+            .then(response => response.json())
+            .then(data => {
+                if (data.isAdmin) {
+                    document.getElementById('admin-link').style.display = 'block';
+                }
+            });
+    </script>
+</body>
+</html>
