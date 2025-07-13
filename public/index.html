@@ -57,6 +57,9 @@
                 <button type="button" class="btn btn-info me-2" id="move-selected-btn" style="display: none;" onclick="openMoveModal(Array.from(selectedItems))">
                     <i class="bi bi-arrows-move"></i> Move Selected
                 </button>
+                <button type="button" class="btn btn-success me-2" id="download-selected-btn" style="display: none;" onclick="downloadSelected()">
+                    <i class="bi bi-download"></i> Download Selected
+                </button>
                 <a href="/auth/logout" class="btn btn-outline-secondary"><i class="bi bi-box-arrow-right"></i> Logout</a>
                 <a href="/admin.html" class="btn btn-outline-info ms-2" id="admin-link" style="display: none;"><i class="bi bi-gear"></i> Admin</a>
             </div>
@@ -436,15 +439,60 @@
             } else {
                 moveSelectedBtn.style.display = 'none';
             }
+            updateDownloadSelectedButtonVisibility(); // Call to update download button visibility
         }
 
-        function openMoveModal(names) {
-            // 'names' can be a single string or an array of strings
-            itemToMove = Array.isArray(names) ? names : [names];
-            document.getElementById('item-to-move-name').textContent = itemToMove.join(', ');
-            document.getElementById('destination-path-input').value = currentPath; // Pre-fill with current path
-            const moveModal = new bootstrap.Modal(document.getElementById('moveModal'));
-            moveModal.show();
+        function updateDownloadSelectedButtonVisibility() {
+            const downloadSelectedBtn = document.getElementById('download-selected-btn');
+            if (selectedItems.size > 0) {
+                downloadSelectedBtn.style.display = 'block';
+            } else {
+                downloadSelectedBtn.style.display = 'none';
+            }
+        }
+
+        function downloadSelected() {
+            if (selectedItems.size === 0) {
+                alert('Please select files to download.');
+                return;
+            }
+
+            const itemsToDownload = Array.from(selectedItems);
+
+            if (itemsToDownload.length === 1) {
+                // Single file download
+                const fileName = itemsToDownload[0];
+                const fileUrl = `/api/download?path=${encodeURIComponent(currentPath)}&name=${encodeURIComponent(fileName)}`;
+                window.location.href = fileUrl;
+            } else {
+                // Multiple files download (as a zip)
+                fetch('/api/download-multiple', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ names: itemsToDownload, path: currentPath }),
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.text().then(text => { throw new Error(text) });
+                    }
+                    return response.blob(); // Get the response as a Blob
+                })
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'files.zip'; // Name of the downloaded zip file
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    alert('Multiple files download started.');
+                })
+                .catch(error => {
+                    console.error('Error downloading files:', error);
+                    alert(`Error downloading files: ${error.message}`);
+                });
+            }
         }
 
         document.getElementById('confirm-move-btn').onclick = () => {

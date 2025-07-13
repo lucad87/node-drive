@@ -209,4 +209,67 @@ router.post('/move', express.json(), async (req, res) => {
     }
 });
 
+// Download single file
+router.get('/download', (req, res) => {
+    const fileName = req.query.name;
+    const filePath = path.join(uploadsDir, req.query.path || '', fileName);
+
+    if (!fs.existsSync(filePath)) {
+        return res.status(404).send('File not found');
+    }
+
+    res.download(filePath, fileName, (err) => {
+        if (err) {
+            console.error('Error downloading file:', err);
+            res.status(500).send('Error downloading file');
+        }
+    });
+});
+
+// Download multiple files as a zip
+const archiver = require('archiver');
+
+router.post('/download-multiple', express.json(), async (req, res) => {
+    const { names, path: currentPath } = req.body;
+
+    if (!Array.isArray(names) || names.length === 0) {
+        return res.status(400).send('No files specified for download.');
+    }
+
+    const archive = archiver('zip', {
+        zlib: { level: 9 } // Sets the compression level.
+    });
+
+    archive.on('error', function(err) {
+        res.status(500).send({ error: err.message });
+    });
+
+    // On stream closed we can end the response.
+    archive.on('end', function() {
+        console.log('Archive wrote %d bytes', archive.pointer());
+    });
+
+    // set the archive name
+    res.attachment('files.zip');
+
+    // This is the pipe of data to the response.
+    archive.pipe(res);
+
+    for (const name of names) {
+        const filePath = path.join(uploadsDir, currentPath || '', name);
+        if (fs.existsSync(filePath)) {
+            const stat = await fs.promises.stat(filePath);
+            if (stat.isFile()) {
+                archive.file(filePath, { name: name });
+            } else if (stat.isDirectory()) {
+                archive.directory(filePath, name); // Add directory recursively
+            }
+        } else {
+            console.warn(`File or directory not found, skipping: ${filePath}`);
+        }
+    }
+
+    archive.finalize();
+});
+
 module.exports = router;
