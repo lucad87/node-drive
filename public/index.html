@@ -90,6 +90,21 @@
 
         <div id="file-browser" class="list-group"></div>
 
+        <script>
+            document.addEventListener('show.bs.dropdown', function (e) {
+                const openDropdownMenus = document.querySelectorAll('.dropdown-menu.show');
+                for (const menu of openDropdownMenus) {
+                    const toggle = menu.previousElementSibling;
+                    if (toggle !== e.target) {
+                        const instance = bootstrap.Dropdown.getInstance(toggle);
+                        if (instance) {
+                            instance.hide();
+                        }
+                    }
+                }
+            });
+        </script>
+
         <!-- New Folder Modal -->
         <div class="modal fade" id="newFolderModal" tabindex="-1" aria-labelledby="newFolderModalLabel" aria-hidden="true">
             <div class="modal-dialog">
@@ -317,16 +332,32 @@
                         const actionsDropdown = document.createElement('div');
                         actionsDropdown.className = 'dropdown';
                         actionsDropdown.onclick = (e) => e.stopPropagation();
+
+                        let dropdownMenu;
+                        if (file.isDirectory) {
+                            dropdownMenu = `
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#" onclick="openMoveModal('${file.name}')"><i class="bi bi-arrows-move"></i> Move</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="shareItem('${file.name}')"><i class="bi bi-share-fill"></i> Share</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteItem('${file.name}')"><i class="bi bi-trash-fill"></i> Delete</a></li>
+                                </ul>`;
+                        } else {
+                            dropdownMenu = `
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#" onclick="downloadSingleFile('${file.name}')"><i class="bi bi-download"></i> Download</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="openMoveModal('${file.name}')"><i class="bi bi-arrows-move"></i> Move</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="shareItem('${file.name}')"><i class="bi bi-share-fill"></i> Share</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteItem('${file.name}')"><i class="bi bi-trash-fill"></i> Delete</a></li>
+                                </ul>`;
+                        }
+
                         actionsDropdown.innerHTML = `
                             <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-three-dots-vertical"></i>
                             </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="#" onclick="openMoveModal('${file.name}')"><i class="bi bi-arrows-move"></i> Move</a></li>
-                                <li><a class="dropdown-item" href="#" onclick="shareItem('${file.name}')"><i class="bi bi-share-fill"></i> Share</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item text-danger" href="#" onclick="deleteItem('${file.name}')"><i class="bi bi-trash-fill"></i> Delete</a></li>
-                            </ul>
+                            ${dropdownMenu}
                         `;
                         item.appendChild(actionsDropdown);
 
@@ -449,6 +480,11 @@
                 downloadSelectedBtn.style.display = 'none';
                 downloadSelectedDropdownItem.style.display = 'none';
             }
+        }
+
+        function downloadSingleFile(name) {
+            const fileUrl = `/api/download?path=${encodeURIComponent(currentPath)}&name=${encodeURIComponent(name)}`;
+            window.location.href = fileUrl;
         }
 
         function downloadSelected() {
