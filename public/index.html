@@ -46,10 +46,10 @@
 </head>
 <body>
     <div class="container mt-4">
-        <header class="d-flex justify-content-between align-items-center pb-3 mb-4 border-bottom">
-            <h1 class="h4 mb-0">Node Drive</h1>
-            <div class="d-flex align-items-center" id="header-actions">
-                <div class="btn-group me-2">
+        <header class="d-flex flex-wrap justify-content-between align-items-center pb-3 mb-4 border-bottom">
+            <h1 class="h4 mb-0 me-3">Node Drive</h1>
+            <div class="d-flex flex-wrap align-items-center gap-2" id="header-actions">
+                <div class="btn-group mb-2 mb-md-0">
                     <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-plus-lg"></i> <span class="d-none d-sm-inline">New</span>
                     </button>
@@ -60,18 +60,9 @@
                     </ul>
                     <input type="file" id="file-input" style="display: none;" onchange="uploadFile()" multiple>
                 </div>
-                <div class="btn-group me-2 d-none d-md-block">
-                    <button type="button" class="btn btn-secondary" id="select-all-btn" onclick="toggleSelectAll()"><i class="bi bi-check-square"></i> <span class="d-none d-lg-inline">Select All</span></button>
-                    <button type="button" class="btn btn-info" id="move-selected-btn" style="display: none;" onclick="openMoveModal(Array.from(selectedItems))">
-                        <i class="bi bi-arrows-move"></i> <span class="d-none d-lg-inline">Move</span>
-                    </button>
-                    <button type="button" class="btn btn-success" id="download-selected-btn" style="display: none;" onclick="downloadSelected()">
-                        <i class="bi bi-download"></i> <span class="d-none d-lg-inline">Download</span>
-                    </button>
-                </div>
-                <div class="btn-group me-2 d-md-none">
+                <div class="btn-group mb-2 mb-md-0">
                     <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-three-dots-vertical"></i>
+                        <i class="bi bi-check-square"></i> <span class="d-none d-lg-inline">Actions</span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" href="#" onclick="toggleSelectAll()"><i class="bi bi-check-square"></i> Select All</a></li>
@@ -79,8 +70,8 @@
                         <li><a class="dropdown-item" href="#" id="download-selected-dropdown-item" style="display: none;" onclick="downloadSelected()"><i class="bi bi-download"></i> Download Selected</a></li>
                     </ul>
                 </div>
-                <a href="/auth/logout" class="btn btn-outline-secondary"><i class="bi bi-box-arrow-right"></i> <span class="d-none d-sm-inline">Logout</span></a>
-                <a href="/admin.html" class="btn btn-outline-info ms-2" id="admin-link" style="display: none;"><i class="bi bi-gear"></i> <span class="d-none d-sm-inline">Admin</span></a>
+                <a href="/auth/logout" class="btn btn-outline-secondary mb-2 mb-md-0"><i class="bi bi-box-arrow-right"></i> <span class="d-none d-sm-inline">Logout</span></a>
+                <a href="/admin.html" class="btn btn-outline-info mb-2 mb-md-0" id="admin-link" style="display: none;"><i class="bi bi-gear"></i> <span class="d-none d-sm-inline">Admin</span></a>
             </div>
         </header>
 
@@ -464,20 +455,14 @@
         }
 
         function updateMoveSelectedButtonVisibility() {
-            const moveSelectedBtn = document.getElementById('move-selected-btn');
             const moveSelectedDropdownItem = document.getElementById('move-selected-dropdown-item');
-            const downloadSelectedBtn = document.getElementById('download-selected-btn');
             const downloadSelectedDropdownItem = document.getElementById('download-selected-dropdown-item');
 
             if (selectedItems.size > 0) {
-                moveSelectedBtn.style.display = 'block';
                 moveSelectedDropdownItem.style.display = 'block';
-                downloadSelectedBtn.style.display = 'block';
                 downloadSelectedDropdownItem.style.display = 'block';
             } else {
-                moveSelectedBtn.style.display = 'none';
                 moveSelectedDropdownItem.style.display = 'none';
-                downloadSelectedBtn.style.display = 'none';
                 downloadSelectedDropdownItem.style.display = 'none';
             }
         }
