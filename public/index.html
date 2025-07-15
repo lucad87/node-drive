@@ -467,6 +467,19 @@
             }
         }
 
+        function openMoveModal(itemNames) {
+            itemToMove = itemNames; // Can be a string (single) or an array (multiple)
+            const itemToMoveNameElement = document.getElementById('item-to-move-name');
+            if (Array.isArray(itemNames)) {
+                itemToMoveNameElement.textContent = `${itemNames.length} items`;
+            } else {
+                itemToMoveNameElement.textContent = itemNames;
+            }
+            document.getElementById('destination-path-input').value = ''; // Clear previous input
+            const moveModal = new bootstrap.Modal(document.getElementById('moveModal'));
+            moveModal.show();
+        }
+
         function downloadSingleFile(name) {
             const fileUrl = `/api/download?path=${encodeURIComponent(currentPath)}&name=${encodeURIComponent(name)}`;
             window.location.href = fileUrl;
@@ -522,10 +535,11 @@
         };
 
         function moveItem(names, destination) {
+            const namesArray = Array.isArray(names) ? names : [names];
             fetch('/api/move', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ names, currentPath, destination }),
+                body: JSON.stringify({ names: namesArray, currentPath, destination }),
             })
             .then(response => {
                 if (!response.ok) {
