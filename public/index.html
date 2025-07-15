@@ -19,7 +19,18 @@
 
         @media (max-width: 768px) {
             .file-name {
-                max-width: 150px; /* Shorter max-width for smaller screens */
+                max-width: 100px; /* Shorter max-width for smaller screens */
+            }
+            .file-icon {
+                font-size: 1.2rem;
+                margin-right: 8px;
+            }
+            .breadcrumb {
+                font-size: 0.875rem;
+            }
+            .container {
+                padding-left: 10px;
+                padding-right: 10px;
             }
         }
 
@@ -31,20 +42,16 @@
             font-size: 1.5rem;
             margin-right: 10px;
         }
-        .delete-btn {
-            color: red;
-            cursor: pointer;
-        }
     </style>
 </head>
 <body>
     <div class="container mt-4">
         <header class="d-flex justify-content-between align-items-center pb-3 mb-4 border-bottom">
             <h1 class="h4 mb-0">Node Drive</h1>
-            <div class="d-flex align-items-center">
+            <div class="d-flex align-items-center" id="header-actions">
                 <div class="btn-group me-2">
                     <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-plus-lg"></i> New
+                        <i class="bi bi-plus-lg"></i> <span class="d-none d-sm-inline">New</span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#newFolderModal"><i class="bi bi-folder-plus"></i> New Folder</a></li>
@@ -53,15 +60,27 @@
                     </ul>
                     <input type="file" id="file-input" style="display: none;" onchange="uploadFile()" multiple>
                 </div>
-                <button type="button" class="btn btn-secondary me-2" id="select-all-btn" onclick="toggleSelectAll()"><i class="bi bi-check-square"></i> Select All</button>
-                <button type="button" class="btn btn-info me-2" id="move-selected-btn" style="display: none;" onclick="openMoveModal(Array.from(selectedItems))">
-                    <i class="bi bi-arrows-move"></i> Move Selected
-                </button>
-                <button type="button" class="btn btn-success me-2" id="download-selected-btn" style="display: none;" onclick="downloadSelected()">
-                    <i class="bi bi-download"></i> Download Selected
-                </button>
-                <a href="/auth/logout" class="btn btn-outline-secondary"><i class="bi bi-box-arrow-right"></i> Logout</a>
-                <a href="/admin.html" class="btn btn-outline-info ms-2" id="admin-link" style="display: none;"><i class="bi bi-gear"></i> Admin</a>
+                <div class="btn-group me-2 d-none d-md-block">
+                    <button type="button" class="btn btn-secondary" id="select-all-btn" onclick="toggleSelectAll()"><i class="bi bi-check-square"></i> <span class="d-none d-lg-inline">Select All</span></button>
+                    <button type="button" class="btn btn-info" id="move-selected-btn" style="display: none;" onclick="openMoveModal(Array.from(selectedItems))">
+                        <i class="bi bi-arrows-move"></i> <span class="d-none d-lg-inline">Move</span>
+                    </button>
+                    <button type="button" class="btn btn-success" id="download-selected-btn" style="display: none;" onclick="downloadSelected()">
+                        <i class="bi bi-download"></i> <span class="d-none d-lg-inline">Download</span>
+                    </button>
+                </div>
+                <div class="btn-group me-2 d-md-none">
+                    <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" onclick="toggleSelectAll()"><i class="bi bi-check-square"></i> Select All</a></li>
+                        <li><a class="dropdown-item" href="#" id="move-selected-dropdown-item" style="display: none;" onclick="openMoveModal(Array.from(selectedItems))"><i class="bi bi-arrows-move"></i> Move Selected</a></li>
+                        <li><a class="dropdown-item" href="#" id="download-selected-dropdown-item" style="display: none;" onclick="downloadSelected()"><i class="bi bi-download"></i> Download Selected</a></li>
+                    </ul>
+                </div>
+                <a href="/auth/logout" class="btn btn-outline-secondary"><i class="bi bi-box-arrow-right"></i> <span class="d-none d-sm-inline">Logout</span></a>
+                <a href="/admin.html" class="btn btn-outline-info ms-2" id="admin-link" style="display: none;"><i class="bi bi-gear"></i> <span class="d-none d-sm-inline">Admin</span></a>
             </div>
         </header>
 
@@ -295,40 +314,21 @@
                             };
                         }
 
-                        const actionsDiv = document.createElement('div');
-                        actionsDiv.className = 'd-flex align-items-center';
-
-                        const deleteBtn = document.createElement('button');
-                        deleteBtn.className = 'btn btn-sm btn-outline-danger';
-                        deleteBtn.innerHTML = '<i class="bi bi-trash-fill"></i>';
-                        deleteBtn.onclick = (e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            deleteItem(file.name);
-                        };
-                        actionsDiv.appendChild(deleteBtn);
-
-                        const shareBtn = document.createElement('button');
-                        shareBtn.className = 'btn btn-sm btn-outline-info ms-2';
-                        shareBtn.innerHTML = '<i class="bi bi-share-fill"></i>';
-                        shareBtn.onclick = (e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            shareItem(file.name);
-                        };
-                        actionsDiv.appendChild(shareBtn);
-
-                        const moveBtn = document.createElement('button');
-                        moveBtn.className = 'btn btn-sm btn-outline-secondary ms-2';
-                        moveBtn.innerHTML = '<i class="bi bi-arrows-move"></i>';
-                        moveBtn.onclick = (e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            openMoveModal(file.name);
-                        };
-                        actionsDiv.appendChild(moveBtn);
-
-                        item.appendChild(actionsDiv);
+                        const actionsDropdown = document.createElement('div');
+                        actionsDropdown.className = 'dropdown';
+                        actionsDropdown.onclick = (e) => e.stopPropagation();
+                        actionsDropdown.innerHTML = `
+                            <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#" onclick="openMoveModal('${file.name}')"><i class="bi bi-arrows-move"></i> Move</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="shareItem('${file.name}')"><i class="bi bi-share-fill"></i> Share</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="deleteItem('${file.name}')"><i class="bi bi-trash-fill"></i> Delete</a></li>
+                            </ul>
+                        `;
+                        item.appendChild(actionsDropdown);
 
                         fileBrowser.appendChild(item);
                     });
@@ -434,20 +434,20 @@
 
         function updateMoveSelectedButtonVisibility() {
             const moveSelectedBtn = document.getElementById('move-selected-btn');
+            const moveSelectedDropdownItem = document.getElementById('move-selected-dropdown-item');
+            const downloadSelectedBtn = document.getElementById('download-selected-btn');
+            const downloadSelectedDropdownItem = document.getElementById('download-selected-dropdown-item');
+
             if (selectedItems.size > 0) {
                 moveSelectedBtn.style.display = 'block';
+                moveSelectedDropdownItem.style.display = 'block';
+                downloadSelectedBtn.style.display = 'block';
+                downloadSelectedDropdownItem.style.display = 'block';
             } else {
                 moveSelectedBtn.style.display = 'none';
-            }
-            updateDownloadSelectedButtonVisibility(); // Call to update download button visibility
-        }
-
-        function updateDownloadSelectedButtonVisibility() {
-            const downloadSelectedBtn = document.getElementById('download-selected-btn');
-            if (selectedItems.size > 0) {
-                downloadSelectedBtn.style.display = 'block';
-            } else {
+                moveSelectedDropdownItem.style.display = 'none';
                 downloadSelectedBtn.style.display = 'none';
+                downloadSelectedDropdownItem.style.display = 'none';
             }
         }
 
